@@ -40,4 +40,4 @@ fredapi
 jupyter
 
 Status:
-Active development. Feature engineering complete. HMM training and regime labeling in progress.
+Active development. Feature engineering complete, HMM training, and regime labeling complete. Live trading implementation in progress.
