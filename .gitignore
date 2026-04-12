@@ -1,0 +1,14 @@
+# Virtual environment
+hmm-env/
+
+# Saved model and data pickles
+*.pkl
+
+# Python cache
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Output files
+*.png
+backtest_results.pkl
