@@ -22,7 +22,7 @@ HMM_FEATURES = [
     'Bond to Ten Year Treasury',
 ]
 
-FAMA_COLS = ['Mkt-RF', 'SMB', 'HML', 'RMW', 'CMA', 'Mom']
+FAMA_COLS = ['Mkt-RF', 'SMB', 'HML', 'RMW', 'Mom']   # CMA dropped — no clean ETF proxy
 
 REGIME_LABELS = {
     0: 'Low Vol',

@@ -20,7 +20,7 @@ import pandas as pd
 
 from data     import MarketDataLoader, build_master
 from regime   import RegimeModel, FAMA_COLS
-from backtest import ETFMapper, Portfolio, PerformanceAnalyzer, FACTOR_ETF, BENCHMARK
+from backtest import FactorReturnBuilder, Portfolio, PerformanceAnalyzer, ALL_TICKERS, BENCHMARK
 from plotting import BacktestPlotter
 
 
@@ -102,41 +102,42 @@ def run_pipeline(rm: RegimeModel, train: pd.DataFrame, test: pd.DataFrame):
     test_regimes = rm.predict(test)
     print(test[inspect_cols].join(test_regimes).groupby('regime').mean())
 
-    # ── Step 2: Download ETF prices aligned to regime dates
-    all_tickers = list(set(FACTOR_ETF.values()) | {BENCHMARK})
-    start       = regime_series.index.min()
-    end         = regime_series.index.max()
+    # ── Step 2: Download all ETF prices needed for long-short proxies
+    start = regime_series.index.min()
+    end   = regime_series.index.max()
 
-    print(f"\nDownloading ETFs: {all_tickers}")
-    prices      = MarketDataLoader().fetch_etf_prices(all_tickers, str(start.date()), str(end.date()))
+    print(f"\nDownloading ETFs: {ALL_TICKERS}")
+    prices      = MarketDataLoader().fetch_etf_prices(ALL_TICKERS, str(start.date()), str(end.date()))
     etf_returns = prices.pct_change().dropna()
 
-    # Align dates across all three
-    common_dates  = regime_series.index.intersection(etf_returns.index)
-    etf_returns   = etf_returns.loc[common_dates]
-    regime_series = regime_series.loc[common_dates]
-    regime_probs  = regime_probs.loc[common_dates]
-    print(f"Trading days in backtest: {len(etf_returns)}")
+    # ── Step 3: Build synthetic long-short factor returns
+    builder        = FactorReturnBuilder()
+    factor_returns = builder.compute(etf_returns)
+    builder.print_proxies()
 
-    # ── Step 3: Convert factor weights → ETF weights
-    mapper             = ETFMapper()
-    regime_etf_weights = mapper.convert_all(rm.regime_weights)
-    mapper.print_allocations(regime_etf_weights)
+    # ── Step 4: Align all series to common dates
+    common_dates   = regime_series.index.intersection(factor_returns.index)
+    factor_returns = factor_returns.loc[common_dates]
+    etf_returns    = etf_returns.loc[common_dates]
+    regime_series  = regime_series.loc[common_dates]
+    regime_probs   = regime_probs.loc[common_dates]
+    print(f"Trading days in backtest: {len(factor_returns)}")
 
-    # ── Step 4: Simulate portfolio with soft regime blending
+    # ── Step 5: Simulate portfolio with soft regime blending
     portfolio = Portfolio(starting_capital=STARTING_CAPITAL)
     results   = portfolio.run(
-        etf_returns        = etf_returns,
-        regime_series      = regime_series,
-        regime_etf_weights = regime_etf_weights,
-        train_cutoff       = TRAIN_CUTOFF,
-        regime_probs       = regime_probs,   # soft blending enabled
+        factor_returns = factor_returns,
+        etf_returns    = etf_returns,
+        regime_series  = regime_series,
+        regime_weights = rm.regime_weights,
+        train_cutoff   = TRAIN_CUTOFF,
+        regime_probs   = regime_probs,        # soft blending enabled
     )
 
-    # ── Step 5: Performance metrics
+    # ── Step 6: Performance metrics
     PerformanceAnalyzer(results, STARTING_CAPITAL).print_summary()
 
-    # ── Step 6: Plot
+    # ── Step 7: Plot
     BacktestPlotter(results, TRAIN_CUTOFF).plot(save_path='hmm_backtest.png', show=True)
 
     return results
