@@ -51,12 +51,14 @@ This flag forces the system to retrain the model even if a saved model already e
 ---
 
 ## Requirements
-| Package | Package |
-| :--- | :--- |
-| `hmmlearn` | `numpy` |
-| `pandas` | `matplotlib` |
-| `scipy` | `requests` |
-| `fredapi` | `jupyter` |
+* `hmmlearn`
+* `numpy`
+* `pandas`
+* `matplotlib`
+* `scipy`
+* `requests`
+* `fredapi`
+* `jupyter`
 
 ---
 
